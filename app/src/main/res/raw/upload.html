@@ -1,0 +1,154 @@
+<html ng-app="app">
+<head>
+<title>upload</title>
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+    <style>
+label.mpya { background: #59a09a; display: inline-block; padding: .5em 1em; box-shadow: #7b7b7b 1px 1px 1px; color: white; font-weight: bold; margin: 0.5em 0; border-radius:.3em; }
+div#send_these { display: table; box-shadow: #ccc 3px 3px 3px; padding: 1em; border: #ccc solid 1px; }
+td span.key { padding-left: 2em; color: #b7b7ef; font-style: italic; font-size: .8em; }
+i.fas.fa-trash-alt { font-weight: 100; font-size: .8em; color: #ffc1c1; background: #f7f7f7; padding: 0.7em; margin-left:2em; border-radius: 2.5em; cursor: pointer; }
+i.fas.fa-trash-alt:hover{ color:#ef0606; background:#ffd8bd; box-shadow:#712020 0 0 3px; }
+#entries td span.hint { border: #ece8e8 solid 1px; padding: 0.4em; font-size: .8em; position: relative; border-radius: 1em; color: #b55252; box-shadow: #ccc 2px 2px 1px; display:none; }
+#entries td:hover span.hint{ display:inline-block; position: absolute; }
+tr.invalid { background-color: #ffe5e5; }
+table#entries { border-collapse: collapse; }
+button.ok { background: #a05959; float: right; }
+button.cancel { background: #59a09a; }
+.button{ background: #59a09a; display: inline-block; padding: .5em 1em; box-shadow: #7b7b7b 1px 1px 1px; color: white; font-weight: bold; margin: 0.5em 0; border-radius: .3em; border: none; }
+.summary-namba{ font-weight: bold; color: #315d94; font-size: 1em; margin-left: 0.5em; letter-spacing: 2px; }
+#summary p { color: #484722; }
+.button.disabled {opacity: .2;cursor: not-allowed;}
+body { padding: 6em;}
+button.ok:active{ background:#e0c500 }
+button.cancel:active{ background:#00ea82; }
+div#sessionExpired { position: fixed; width: 50%; color: red; top: 0; left: 25%; background: #f1f1f1; padding: 2em; box-shadow: #999 2px 2px 5px; display: none; }
+    </style>
+</head>
+<body>
+<div id="excel">
+<p>
+    Please click to select an excel containing sms information  here</p>
+   <label class="mpya">choose file<input type="file" id="file_input" style="display:none"/></label>
+</div>
+<div id="send_these" ng-controller="upload">
+   <table id="entries">
+      <tr ng-repeat="row in upload.data" ng-class="row.isValid?'':'invalid'">
+          <td ng-repeat="key in upload.expected"><span class="key">{{key}}</span><span>{{row[key]}}</span></td>
+          <td class='delete-record'><i class='fas fa-trash-alt' ng-click="removeRecord(row)"></i><span class="hint">Remove this record ?</span></td>
+      </tr>
+   </table>
+    <div id="summary">
+        <p>Total sendable sms <span id="sum" class="summary-namba">Tsh{{putCommaPesa(upload.summary.sum)}}/=</span></p>
+        <p>sendable entries Count <span id="validEntries" class="summary-namba">{{upload.summary.validCount}}</span></p>
+        <p>Invalid Entries <span id="invalidEntries" class="summary-namba">{{upload.summary.invalidCount}}</span></p>
+    </div>
+    <button class="cancel button" ng-class="upload.summary.validCount>0?'':'disabled'" ng-click="cancelupload()">Cancel</button>
+    <button class="ok button" ng-class="upload.summary.validCount>0?'':'disabled'"  ng-click="send()">Send</button>
+</div>
+<div id="sessionExpired" >
+   <h1>Session Expired</h1>
+    <p>Your session has ended, unfortunately you cannot continue,
+        please log in again by clicking the log in button to continue!</p>
+    <button class="cancel button" onclick="login()">login</button>
+</div>
+<script src="jquery.js"></script>
+<script src="angular.js"></script>
+<script src="jszip.js"></script>
+<script src="xlsx.js"></script>
+<script>
+    upload_STATUS={Cancelled:"Cancellignoreded",Successful:"Successful",InvalidRecord:"Invalid Record",Waiting:"Waiting",NotYet:"Not Yet"};
+  var upload=function(data){
+      this.expected=["id","phone","sms","uploadStatus"];
+      this.summary={sum:0,validCount:0,invalidCount:0};
+      this.data=[];
+      var $this=this;
+        //data=data.slice(0,10);
+      data.forEach(function (e) {
+          var d={}
+          Object.keys(e).forEach(k=>{d[k.trim()]=e[k].trim()})
+          d.isValid=isRecordValid(d);
+          if(d.isValid){$this.summary.validCount++;
+              d.uploadStatus=upload_STATUS.NotYet;
+              $this.summary.sum+=countSMSinString(d.sms);}
+          else{$this.summary.invalidCount++;
+                d.uploadStatus=upload_STATUS.InvalidRecord;
+               }
+          $this.data.push(d);
+      }); return this;
+  };
+
+ 
+    var app=angular.module("app",[]);
+       app.controller("upload",function ($scope,$http) {
+          registerFilePickingEvent($scope);
+          $scope.data=[];
+          $scope.putCommaPesa=putCommaPesa;
+          $scope.cancelupload=function(){
+              $("#file_input").val('');
+               //$scope.upload=upload([]);
+                $scope.upload.data.forEach(function (p) {
+                  if(p.uploadStatus===upload_STATUS.NotYet){ p.uploadStatus="cancelled";}});
+                 console.log("uploadCanceled");
+             };
+                 $scope.send=function(){
+                     var okButton=$(".ok.button");
+                     if(okButton.hasClass("disabled")){ console.log("has class disabled"); return;}
+                     $(".ok.button").css("display","none");
+                     var data=$scope.upload.data;
+                     var n=0;
+                     var interval=setInterval(function () { var d;
+                           for(d=data[n];n<data.length&&!d.isValid;n++){
+                               d=data[n+1];}
+                           if(n>=data.length){clearInterval(interval);return;}
+                           if(d.uploadStatus!==upload_STATUS.NotYet){return;}
+                        n++; $http.post("/send",d).then(function (results) {
+                             if(results.data)
+                             d.uploadStatus=upload_STATUS.Successful;
+                             d.uploadStatus=results.data; });},250);
+            };
+                 $scope.removeRecord=function (r) {
+                     var d=$scope.upload.data;
+                     for(var i=0;i<d.length;i++){
+                         if(r===d[i]){
+                            if(r.isValid){
+                              this.upload.summary.validCount--;
+                              this.upload.summary.sum-=r.sms;
+                                   console.log("validcount--")}
+                             else{ this.upload.summary.invalidCount--; console.log("inValidcount --") }
+                             d.splice(i,1);
+                         } } }
+         });
+
+   function registerFilePickingEvent($scope){
+     $("#file_input").on("change",function (e) {
+        var reader = new FileReader();
+            reader.onload = function(e) {
+               var data = e.target.result;
+               var workbook = XLSX.read(data, { type: 'binary'});
+               workbook.SheetNames.forEach(function(sheetName) {
+                   var XL_row_object = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheetName],{raw:true});
+                  $scope.upload=upload(XL_row_object);
+                   $scope.$apply();
+               })};
+           reader.onerror = function(ex) { console.log(ex);};
+           reader.readAsBinaryString(e.target.files[0]);
+       });
+   }
+   function isRecordValid(record) {
+      return record.sms&&record.phone
+             &&record.sms.length>1
+             &&(record.phone+"").length>=9;
+   }
+   function putCommaPesa(pesa){
+        var p=(pesa+"").replace(/\..*$/,"").replace(/[^0-9]+/g,"");
+        var len=p.length; if(len<4){return p;}
+        var  ps=p.substring(len-3,len);
+        for(var i=3;i<len;i+=3){ var kk= p.substring(len-i-3,len-i);ps=kk+","+ps;}
+        return ps;
+   }
+function countSMSinString(smsString){
+      return Math.ceil(smsString.length/154)
+   }
+</script>
+</body>
+</html>

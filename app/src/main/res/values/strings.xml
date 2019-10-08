@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">MessejiNyingi</string>
+    <string name="status">Status</string>
+    <string name="message">Message</string>
+    <string name="how_to_use_it">How to use it?</string>
+    <string name="how_to_use_explanation">* Make sure this phone is in the same wireless as your PC \n* Open your web browser in your PC, then type the url below. \n* From the opened window browse the Excel file containing phone numbers and sms then hit send</string>
+    <string name="url_label">URL</string>
+    <string name="sender_number">Sender Number</string>
+    <string name="contents">Contents</string>
+    <string name="still_waiting">still waiting for it... !!??</string>
+    <string name="no_connection">You are not connected to wifi..</string>
+    <string name="url">http://%s:8090</string>
+    <string name="resend">Resend</string>
+    <string name="pending">Pending: %s</string>
+    <string name="waiting">Waiting: %s</string>
+    <string name="failed">Failed: %s</string>
+    <string name="delivered">Delivered: %s</string>
+    <string name="total">Total: %s</string>
+</resources>
