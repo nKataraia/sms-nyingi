@@ -3,16 +3,19 @@ package org.dtree.android.messeji
 import android.Manifest.permission.*
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.telephony.SmsManager
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import tz.co.gluhen.common.App
 import tz.co.gluhen.common.DB
-import tz.co.gluhen.common.HelperInterfaces.*
+import tz.co.gluhen.common.HelperInterfaces.Changer
 import tz.co.gluhen.common.event.AppEvent
 import java.net.Inet4Address
 import java.net.NetworkInterface
+import java.util.*
 
 
 class MainActivity : App() {
@@ -20,13 +23,15 @@ class MainActivity : App() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_connect)
-        val permissions= arrayOf(INTERNET,ACCESS_WIFI_STATE,RECEIVE_SMS,SEND_SMS,READ_SMS,WRITE_EXTERNAL_STORAGE)
+        val permissions= arrayOf(INTERNET,ACCESS_WIFI_STATE,RECEIVE_SMS,SEND_SMS,READ_SMS,
+            READ_PHONE_STATE,WRITE_EXTERNAL_STORAGE)
         serviceIntent=Intent(this,MessageSender::class.java)
 
         if (!hasPermissions(permissions)) {
             ActivityCompat.requestPermissions(this, permissions, PERMISSION_ALL)
         }else{ startService(serviceIntent)}
         showURL()
+        showSimInfo()
         setIDBeforeSending()
     }
 
@@ -63,6 +68,22 @@ class MainActivity : App() {
              }
         }.start()
     }
+    private fun showSimInfo(){
+        val defaultSim=SmsManager.getDefault().subscriptionId
+        if(defaultSim<0){return;}
+
+        val urlTelephone= Uri.parse("content://telephony/siminfo/");
+        val  cursor = this.contentResolver.query(urlTelephone, arrayOf("sim_id","carrier_name"), "_id=?",
+            arrayOf(defaultSim.toString()), null)
+            cursor?:return
+            if(cursor.moveToNext()){
+                val simId=cursor.getInt(cursor.getColumnIndex("sim_id"))+1
+                val network=cursor.getString(cursor.getColumnIndex("carrier_name")).toLowerCase(Locale.ENGLISH)
+                val sender="sim $simId ($network)"
+                findViewById<TextView>(R.id.sendingSim).text=sender
+            }
+            cursor.close()
+    }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         if (requestCode==PERMISSION_ALL
@@ -71,7 +92,7 @@ class MainActivity : App() {
             startService(serviceIntent)
         }
         else{ Toast.makeText(this,"Permissions Denied sending of SMS will be aborted",Toast.LENGTH_SHORT).show()}
-}
+    }
 
 
     private fun hasPermissions( permissions: Array<String>): Boolean = permissions.all {
@@ -83,5 +104,4 @@ class MainActivity : App() {
             const val TAG="MainActivity"
             const val GREATER_THAN_SMS_ID="greaterthanSMSID"
     }
-
 }

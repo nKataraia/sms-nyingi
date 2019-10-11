@@ -56,27 +56,57 @@ div#sessionExpired { position: fixed; width: 50%; color: red; top: 0; left: 25%;
 <script src="jszip.js"></script>
 <script src="xlsx.js"></script>
 <script>
-    upload_STATUS={Cancelled:"Cancellignoreded",Successful:"Successful",InvalidRecord:"Invalid Record",Waiting:"Waiting",NotYet:"Not Yet"};
+    upload_STATUS={Cancelled:"Cancellignored",Successful:"Successful",InvalidRecord:"Invalid Record",Waiting:"Waiting",NotYet:"Not Yet"};
   var upload=function(data){
-      this.expected=["id","phone","sms","uploadStatus"];
-      this.summary={sum:0,validCount:0,invalidCount:0};
-      this.data=[];
-      var $this=this;
-        //data=data.slice(0,10);
-      data.forEach(function (e) {
-          var d={}
-          Object.keys(e).forEach(k=>{d[k.trim()]=e[k].trim()})
-          d.isValid=isRecordValid(d);
-          if(d.isValid){$this.summary.validCount++;
-              d.uploadStatus=upload_STATUS.NotYet;
-              $this.summary.sum+=countSMSinString(d.sms);}
-          else{$this.summary.invalidCount++;
-                d.uploadStatus=upload_STATUS.InvalidRecord;
-               }
-          $this.data.push(d);
-      }); return this;
+      this.expected = ["id", "phone", "sms", "uploadStatus"];
+      this.summary = { sum: 0, validCount: 0, invalidCount: 0 };
+      this.data = [];
+      var $this = this;
+      //data=data.slice(0,10);
+      data.map(rollValueVariables)
+          .map(mapFieldName)
+          .forEach(function (e) {
+              var d = {}
+              Object.keys(e).forEach(k => { d[k.trim()] = (e[k] + "").trim() })
+              d.isValid = isRecordValid(d)?true:false;
+              if (d.isValid) {
+                  $this.summary.validCount++;
+                  d.uploadStatus = upload_STATUS.NotYet;
+                  $this.summary.sum += countSMSinString(d.sms);
+              }
+              else {
+                  $this.summary.invalidCount++;
+                  d.uploadStatus = upload_STATUS.InvalidRecord;
+              }
+              $this.data.push(d);
+          }); return this;
   };
 
+function mapFieldName(row){
+          let sms='sms,ujumbe,text,message,msg,meseji';
+          let phone='simu,telephone,number,phonenumber,namba,nambayasimu' ;
+
+          Object.keys(row).forEach(k=>{
+            let s=k.replace(/\W+/g,'').toLowerCase();
+                s=sms.indexOf(s)>=0?'sms':phone.indexOf(s)>=0?'phone':s;
+                row[s]=row[k];
+                if(s!==k){delete row[k];}
+          }); 
+          return row;
+}
+
+function rollValueVariables(row){
+    Object.keys(row).forEach(k=>{
+              let v=row[k];
+              let s=[];let c=0;
+              while((typeof v=='string')&&(s=v.match(/\$\{([^}]+)\}/))&&c++<32){
+                     v=v.replace(s[0],row[s[1]]);
+                    row[k]=v?v:row[k];
+              }
+    });
+    return row;
+
+}
  
     var app=angular.module("app",[]);
        app.controller("upload",function ($scope,$http) {
@@ -134,10 +164,11 @@ div#sessionExpired { position: fixed; width: 50%; color: red; top: 0; left: 25%;
            reader.readAsBinaryString(e.target.files[0]);
        });
    }
+
    function isRecordValid(record) {
       return record.sms&&record.phone
              &&record.sms.length>1
-             &&(record.phone+"").length>=9;
+             &&(record.phone.match(/\d{9,}/g));
    }
    function putCommaPesa(pesa){
         var p=(pesa+"").replace(/\..*$/,"").replace(/[^0-9]+/g,"");

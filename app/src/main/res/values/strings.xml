@@ -13,7 +13,9 @@
     <string name="resend">Resend</string>
     <string name="pending">Pending: %s</string>
     <string name="waiting">Waiting: %s</string>
+    <string name="sent">Sent: %s</string>
     <string name="failed">Failed: %s</string>
     <string name="delivered">Delivered: %s</string>
     <string name="total">Total: %s</string>
+    <string name="notificationDescription">Status Active, you can send SMS from your browser</string>
 </resources>

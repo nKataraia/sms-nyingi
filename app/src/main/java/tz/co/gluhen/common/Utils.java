@@ -29,24 +29,18 @@ import tz.co.gluhen.common.io.MyIO;
 public class Utils {
 
     public static String join(Collection strings, String joiner){
-       if(strings==null||strings.isEmpty())return "";
-       int l=strings.size();
+        if(strings==null||strings.isEmpty())return "";
         Iterator it=strings.iterator();
-       if(l==1)return String.valueOf(it.next());
-       StringBuilder sb=new StringBuilder();
-         while(it.hasNext()){sb.append(it.next()).append(joiner);}
-       String s= sb.toString();
-       return s.substring(0,s.lastIndexOf(joiner));
-    }
-    public static void splitForEach(String string, String splitter, Consumer<String> action){
-        String[] ss=string.split(splitter);
-        String empty="";
-        for(int i=0;i<ss.length;i++){
-            String s=ss[i]!=null?ss[i].trim():empty;
-           if(s.isEmpty()){continue;}
-            action.take(s);}
+        StringBuilder sb=new StringBuilder().append(it.next());
+        while(it.hasNext()){sb.append(joiner).append(it.next());}
+        return sb.toString();
     }
     public static String join(String[] strings, String joiner){return join(Arrays.asList(strings),joiner);}
+
+    public static void splitForEach(String string, String splitter, Consumer<String> action){
+        for(String s:string.split(splitter)){ if(s.isEmpty()){continue;} action.take(s);}
+    }
+
     public static Map<String,String> xmlToMap(String xml){
         Map<String,String> data=new HashMap<>();
         try {
@@ -73,7 +67,7 @@ public class Utils {
     public static String between(String string,String after,String before){
          int s=string.indexOf(after)+after.length();
          int e=string.indexOf(before,s);
-         return s>0&&e>0?string.substring(s,e):"";
+         return s>0&&e>=s?string.substring(s,e):"";
     }
 
     public static String after(String string,String after){
@@ -118,5 +112,21 @@ public class Utils {
     public static String parsePhoneNumber(String phone){
         phone=phone!=null?phone.replaceAll("\\D+",""):"";
         return phone.length()>=9?"+255"+phone.substring(phone.length()-9):"";
+    }
+
+    public static boolean fuzzyMatch(char[] chars,String string){
+        return fuzzyMatch(new String(chars),string);
+    }
+    public static boolean fuzzyMatch(CharSequence chars,String string){
+        return fuzzyMatch(chars.toString(),string);
+    }
+    public static boolean fuzzyMatch(String chars,String string){
+        if(chars==null||string==null||chars.isEmpty()||string.isEmpty()){return false;}
+        int i=0;
+        for(int j=0,l=string.length(),s=chars.length();i<s&&j<l;j++){
+            i=Character.toLowerCase(string.charAt(j))
+                    ==Character.toLowerCase(chars.charAt(i))?i+1:i;
+        }
+        return i==chars.length();
     }
 }

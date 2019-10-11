@@ -47,10 +47,10 @@
        />
    <TextView
        style="@style/bigValue"
-       android:id="@+id/number"
+       android:id="@+id/sendingSim"
        android:layout_width="wrap_content"
        android:layout_height="wrap_content"
-       android:text="+255 754 021 728"
+       android:text="Not Set"
        />
    <TextView
        style="@style/labels"

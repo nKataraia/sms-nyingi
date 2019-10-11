@@ -5,7 +5,7 @@ import tz.co.gluhen.common.event.EventManager
 import tz.co.gluhen.common.event.AppEvent
 
 
-abstract  class App : AppCompatActivity() {
+abstract  class App : AppCompatActivity(){
     private val eventManager:EventManager= EventManager.getInstance()
 
     private val events= mutableListOf<Int>()

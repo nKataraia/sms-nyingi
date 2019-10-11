@@ -1,9 +1,7 @@
 package tz.co.gluhen.common
 
 import android.app.Service
-import androidx.appcompat.app.AppCompatActivity
 import tz.co.gluhen.common.event.EventManager
-import tz.co.gluhen.common.HelperInterfaces.Consumer
 import tz.co.gluhen.common.event.AppEvent
 
 

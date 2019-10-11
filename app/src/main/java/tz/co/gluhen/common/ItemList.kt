@@ -26,7 +26,7 @@ class ItemList<T>(val recyclerView: RecyclerView,
 
    fun addItem(id:Int,item:T){
        data.put(id,item)
-       this.notifyItemChanged(id)
+       this.notifyItemChanged(data.indexOfKey(id))
    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -56,7 +56,7 @@ class ItemList<T>(val recyclerView: RecyclerView,
 
          override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
              super.onScrolled(recyclerView, dx, dy)
-//              Log.e(TAG,"scrolled by (${dx},${dy})")
+//              Log.e(tag,"scrolled by (${dx},${dy})")
          }
      }}
 

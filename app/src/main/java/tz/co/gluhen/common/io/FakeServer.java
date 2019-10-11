@@ -2,9 +2,7 @@ package tz.co.gluhen.common.io;
 
 import android.content.Context;
 import android.util.Log;
-
 import org.dtree.android.messeji.R;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -13,7 +11,6 @@ import java.net.Socket;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import tz.co.gluhen.common.Utils;
 import tz.co.gluhen.common.event.AppEvent;
 import tz.co.gluhen.common.event.EventManager;
@@ -109,7 +106,7 @@ public class FakeServer {
        observer.cancel();
        keepRunning=false;
        ex.shutdownNow();
-       Log.e("stoping","stopping fake server");
+       Log.e("stopping","stopping fake server");
  }
 
     private static final String response=
@@ -118,5 +115,5 @@ public class FakeServer {
             "Server: Custom FakeServer" +
             "Last-Modified: %s\n" +
             "Content-Length: %s\n" +
-            "Content-Type: %s\n\r\n\r\n";
+            "Content-Type: %s\r\n\r\n";
 }
