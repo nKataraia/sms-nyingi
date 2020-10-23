@@ -38,15 +38,10 @@ class SMSReceiver: BroadcastReceiver(){
        }
 
         private fun fireSendingStatusChange(resultCode:Int, smsID:Long){
+            val isSent=resultCode==Activity.RESULT_OK
             Log.e("weka kuwa","imesend status change is $smsID and for $resultCode na pia je imetuma=${resultCode==Activity.RESULT_OK}")
-            return when(resultCode) {
-                Activity.RESULT_OK->smsManager.updateSMSStatus(smsID,SMS.SENT,AppEvent.MESSAGE_SENT)
-                SmsManager.RESULT_ERROR_GENERIC_FAILURE->smsManager.updateSMSStatus(smsID,SMS.FAILED,AppEvent.MESSAGE_SENDING_FAILED)
-                SmsManager.RESULT_ERROR_RADIO_OFF->smsManager.updateSMSStatus(smsID,SMS.FAILED,AppEvent.MESSAGE_SENDING_FAILED)
-                SmsManager.RESULT_ERROR_NULL_PDU->smsManager.updateSMSStatus(smsID,SMS.FAILED,AppEvent.MESSAGE_SENDING_FAILED)
-                SmsManager.RESULT_ERROR_NO_SERVICE->smsManager.updateSMSStatus(smsID,SMS.FAILED,AppEvent.MESSAGE_SENDING_FAILED)
-                else ->smsManager.updateSMSStatus(smsID,SMS.FAILED,AppEvent.MESSAGE_SENDING_FAILED)
-            }
+            return if(isSent)smsManager.updateSMSStatus(smsID,SMS.SENT,AppEvent.MESSAGE_SENT)
+                else smsManager.updateSMSStatus(smsID,SMS.FAILED,AppEvent.MESSAGE_SENDING_FAILED)
         }
 
         private fun fireDeliveryStatusChange(status:Int, smsID:Long){

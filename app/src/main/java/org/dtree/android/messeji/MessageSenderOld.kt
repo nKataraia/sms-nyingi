@@ -1,45 +1,45 @@
 package org.dtree.android.messeji
 
+import android.annotation.TargetApi
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
 import android.os.IBinder
+import android.provider.Settings
 import android.telephony.SmsManager
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import tz.co.gluhen.common.AppService
 import tz.co.gluhen.common.DB
 import tz.co.gluhen.common.event.AppEvent
 import tz.co.gluhen.common.io.FakeServer
+import kotlin.time.Duration
 
 
-class MessageSender : AppService(){
+class MessageSenderOld : AppService(){
     val tag="MessageSender"
     override fun onBind(p0: Intent?): IBinder?{return null}
 
     private val fakeServer=FakeServer()
     private lateinit var smsManager:SMSManager
+    private var anza=0
     private var requestCode=2348
 
     override fun onCreate() {
         super.onCreate()
-        makeItForeground()
-
-        subscribe(AppEvent.MESSAGE_FROM_BROWSER,this::onMessageFromBrowser)
-        subscribe(AppEvent.MESSAGE_SENT,this::onMessageSentOrFailed)
-        subscribe(AppEvent.MESSAGE_SENT,this::onMessageSentOrFailed)
-
-        Log.e(tag,"starting service ..... on port 8090")
-        fakeServer.start(8090,this)
-        val receiver=SMSReceiver()
-        registerReceiver(receiver, IntentFilter(SMS_SENT_ACTION))
-        registerReceiver(receiver, IntentFilter(SMS_DELIVERED_ACTION))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {makeItForeground()}
     }
 
-    private fun makeItForeground(){
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun makeItForeground(){
         val ongoingNotificationId=2
 
         val channelName="Meseji Nyingi"
@@ -50,6 +50,7 @@ class MessageSender : AppService(){
         // or other notification behaviors after this
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(mChannel)
+
 
         val pendingIntent: PendingIntent =
             Intent(this, ActivityShowProgress::class.java).let { notificationIntent ->
@@ -66,8 +67,19 @@ class MessageSender : AppService(){
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-         smsManager= SMSManager(DB.getInstance(this.application))
+        if(++anza>1){return START_STICKY;}
+           smsManager= SMSManager(DB.getInstance(this.application))
+        val port=intent?.getIntExtra("port",8090)?:8090
+        Log.e(tag,"starting service ....  $anza. on port $port")
+        subscribe(AppEvent.MESSAGE_FROM_BROWSER,this::onMessageFromBrowser)
+        subscribe(AppEvent.MESSAGE_SENT,this::onMessageSentOrFailed)
+        subscribe(AppEvent.MESSAGE_SENT,this::onMessageSentOrFailed)
+        fakeServer.start(port,this)
+        val receiver=SMSReceiver()
+        registerReceiver(receiver, IntentFilter(SMS_SENT_ACTION))
+        registerReceiver(receiver, IntentFilter(SMS_DELIVERED_ACTION))
         return START_STICKY
+
     }
 
     override fun onDestroy() {
@@ -77,23 +89,31 @@ class MessageSender : AppService(){
         super.onDestroy()
     }
 
-   private var toSend=0
-   var sessionId:Long=Long.MAX_VALUE
     @Synchronized  fun onMessageFromBrowser(message:String){
         val id=smsManager.saveMessage(message)
         toSend++
-        if(toSend==1){
-            sessionId=id
-            val sms=smsManager.fetchNextSMSToSend(id)?:return
-            sendSMS(sms)
-        }
+        sendingLoop()
     }
     @Synchronized fun onMessageSentOrFailed(message:Any){
-        Log.e("sms-status", "$message  hapa")
+        Log.e("ujumbesubiriwa", "$message  hapa")
         toSend--
-        sendSMS(smsManager.fetchNextSMSToSend(sessionId)?:return)
+        batch--
     }
 
+    private var toSend=0
+    private var batch=0
+
+    @Synchronized  private fun sendingLoop(){
+        if(batch>0){return}
+        GlobalScope.launch{
+            while(toSend>0){
+                val smsList=smsManager.fetchSMSToSend(4)
+                batch=smsList.size
+                for(sms in smsList){sendSMS(sms)}
+                delay(60000)
+            }
+        }
+    }
 
     private fun sendSingle(sms:SMS){
         val smsManager = SmsManager.getDefault()
