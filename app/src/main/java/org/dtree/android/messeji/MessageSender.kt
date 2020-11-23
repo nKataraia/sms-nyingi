@@ -137,7 +137,6 @@ class MessageSender : AppService(){
      }
 
      private fun getDeliveryIntent(sms:SMS):PendingIntent{
-         Log.e("message inayotumwa","message inayotumwa ni ${sms.id}")
          val deliveredIntent =Intent(SMS_DELIVERED_ACTION)
          deliveredIntent.putExtra(RECEIVER_NUMBER, sms.receiverPhone)
          deliveredIntent.putExtra(SENT_MESSAGE, sms.id.toString())
