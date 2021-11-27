@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.IBinder
@@ -14,7 +15,11 @@ import tz.co.gluhen.common.AppService
 import tz.co.gluhen.common.DB
 import tz.co.gluhen.common.event.AppEvent
 import tz.co.gluhen.common.io.FakeServer
+import android.telephony.ServiceState
 
+import android.telephony.PhoneStateListener
+import android.telephony.TelephonyManager
+import kotlinx.coroutines.*
 
 class MessageSender : AppService(){
     val tag="MessageSender"
@@ -27,9 +32,12 @@ class MessageSender : AppService(){
     override fun onCreate() {
         super.onCreate()
         makeItForeground()
+        (this.application.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager)
+            .listen(NetworkListener(), PhoneStateListener.LISTEN_SERVICE_STATE)
 
         subscribe(AppEvent.MESSAGE_FROM_BROWSER,this::onMessageFromBrowser)
         subscribe(AppEvent.MESSAGE_SENT,this::onMessageSentOrFailed)
+        subscribe(AppEvent.MESSAGE_SENDING_FAILED,this::onFailingToSendSMS)
 
         Log.e(tag,"starting service ..... on port 8090")
         fakeServer.start(8090,this)
@@ -74,16 +82,17 @@ class MessageSender : AppService(){
         val intent=Intent(this,SMSReceiver::class.java)
         sendBroadcast(intent)
         fakeServer.stop()
-        Log.e("MessageSender","Service Got destroyed");
+        Log.e("MessageSender","Service Got destroyed")
         super.onDestroy()
     }
 
-   private var toSend=0
+   private var toSend=0;
+   @Volatile var currentlySending=0
    var sessionId:Long=Long.MAX_VALUE
     @Synchronized  fun onMessageFromBrowser(message:String){
         val id=smsManager.saveMessage(message)
         toSend++
-        Log.e("MessageSender","To send $toSend");
+        Log.e("MessageSender","To send $toSend")
         if(toSend==1){
             sessionId=id
             val sms=smsManager.fetchNextSMSToSend(id)?:return
@@ -92,8 +101,26 @@ class MessageSender : AppService(){
     }
     @Synchronized fun onMessageSentOrFailed(message:Any){
         toSend--
-        Log.e("sms-status", "$message  hapa To Send $toSend")
-        sendSMS(smsManager.fetchNextSMSToSend(sessionId)?:return)
+        currentlySending--
+        while(++currentlySending<6){
+           Log.e("sms-status", "$message  hapa To Send $toSend")
+          sendSMS(smsManager.fetchNextSMSToSend(sessionId)?:return)
+        }
+    }
+
+    @Volatile var shouldWaitToSend=false
+    @Synchronized fun onFailingToSendSMS(messageId:Any){
+        Log.e("check waiting","waiting-sending $shouldWaitToSend")
+        if(shouldWaitToSend)return
+        currentlySending=0
+        shouldWaitToSend=true
+            MainScope().launch {
+                delay(120000)
+                Log.e("done waiting","resume sending $messageId")
+                shouldWaitToSend=false
+                smsManager.fetchSMS(messageId as Long)?.let{sendSMS(it)
+            }
+        }
     }
 
 
@@ -114,7 +141,15 @@ class MessageSender : AppService(){
         smsManager.sendMultipartTextMessage( sms.receiverPhone,null, parts, sendingIntents, deliveryIntents)
     }
 
+
+    var onHoldSMS:SMS?=null
     private fun sendSMS(sms:SMS):String {
+        if(!isConnectedToNetwork||shouldWaitToSend){
+            if(onHoldSMS==null)onHoldSMS=sms
+            return SMS.PENDING
+        }
+        else if (onHoldSMS==sms){ onHoldSMS=null}
+
         try {if(requestCode>2000000){requestCode=0;}
                 requestCode++
             if(sms.text.length>160) {sendMultipart(sms)}
@@ -131,7 +166,6 @@ class MessageSender : AppService(){
     }
 
      private fun getSendingIntent(sms:SMS):PendingIntent{
-         Log.e("message inayotumwa","message inayotumwa ni ${sms.id}")
          val sentIntent = Intent(SMS_SENT_ACTION)
          sentIntent.putExtra(RECEIVER_NUMBER, sms.receiverPhone)
          sentIntent.putExtra(SENT_MESSAGE, sms.id.toString())
@@ -145,6 +179,17 @@ class MessageSender : AppService(){
          return PendingIntent.getBroadcast(this, requestCode, deliveredIntent, PendingIntent.FLAG_ONE_SHOT)
      }
 
+
+    @Volatile private var isConnectedToNetwork=false
+    private inner class NetworkListener : PhoneStateListener() {
+        override fun onServiceStateChanged(serviceState: ServiceState) {
+            isConnectedToNetwork = serviceState.state == ServiceState.STATE_IN_SERVICE
+            Log.e("changed Network","Network is changed and $isConnectedToNetwork ")
+            if(serviceState.state == ServiceState.STATE_IN_SERVICE){
+                sendSMS(onHoldSMS?:return)
+            }
+        }
+    }
     companion object{
         const val  SMS_SENT_ACTION = "org.dtree.android.messeji.SMS_SENT"
         const val SMS_DELIVERED_ACTION = "org.dtree.android.messeji.SMS_DELIVERED"

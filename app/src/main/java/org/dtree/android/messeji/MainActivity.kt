@@ -32,7 +32,7 @@ class MainActivity : App() {
         if (!hasPermissions(permissions)) {
             ActivityCompat.requestPermissions(this, permissions, PERMISSION_ALL)
         }else{initialize()}
-        allText()
+//        allText()
     }
 
     private var idBeforeSending=0L

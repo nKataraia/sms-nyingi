@@ -16,7 +16,7 @@ class SMSManager(val db:DB){
     }
 
     fun saveMessage(jsonSMS:String):Long{
-        Log.e("messeji",jsonSMS)
+        Log.d("messeji",jsonSMS)
         val gson= Gson()
         val type=object: TypeToken<Map<String, String>>(){}.type
         val sms=SMS(gson.fromJson<Map<String,String>>(jsonSMS,type))
@@ -27,9 +27,9 @@ class SMSManager(val db:DB){
         return db.insert(sql,m.sender,m.receiverPhone,m.receiverPhone,m.topic,m.text,m.dateSent,m.status)
     }
 
-    fun updateSMSStatus(id:Long,state:String,evnt: AppEvent){
+    fun updateSMSStatus(id:Long,state:String,event: AppEvent){
         db.update("update sms set status=? where id=?",state,id)
-        EventManager.getInstance().fireEvent(evnt,id)
+        EventManager.getInstance().fireEvent(event,id)
     }
 
     fun fetchNextSMSToSend(id:Long):SMS?{
