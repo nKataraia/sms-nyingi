@@ -30,7 +30,6 @@ class MessageSender : AppService(){
 
         subscribe(AppEvent.MESSAGE_FROM_BROWSER,this::onMessageFromBrowser)
         subscribe(AppEvent.MESSAGE_SENT,this::onMessageSentOrFailed)
-        subscribe(AppEvent.MESSAGE_SENT,this::onMessageSentOrFailed)
 
         Log.e(tag,"starting service ..... on port 8090")
         fakeServer.start(8090,this)
@@ -61,6 +60,7 @@ class MessageSender : AppService(){
             .setSmallIcon(R.drawable.messeji_icon)
             .setContentIntent(pendingIntent)
             .setTicker(getText(R.string.message))
+            .setAutoCancel(true)
             .build()
         startForeground(ongoingNotificationId, notification)
     }
@@ -74,6 +74,7 @@ class MessageSender : AppService(){
         val intent=Intent(this,SMSReceiver::class.java)
         sendBroadcast(intent)
         fakeServer.stop()
+        Log.e("MessageSender","Service Got destroyed");
         super.onDestroy()
     }
 
@@ -82,6 +83,7 @@ class MessageSender : AppService(){
     @Synchronized  fun onMessageFromBrowser(message:String){
         val id=smsManager.saveMessage(message)
         toSend++
+        Log.e("MessageSender","To send $toSend");
         if(toSend==1){
             sessionId=id
             val sms=smsManager.fetchNextSMSToSend(id)?:return
@@ -89,8 +91,8 @@ class MessageSender : AppService(){
         }
     }
     @Synchronized fun onMessageSentOrFailed(message:Any){
-        Log.e("sms-status", "$message  hapa")
         toSend--
+        Log.e("sms-status", "$message  hapa To Send $toSend")
         sendSMS(smsManager.fetchNextSMSToSend(sessionId)?:return)
     }
 

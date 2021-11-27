@@ -3,6 +3,7 @@ package org.dtree.android.messeji
 import android.Manifest.permission.*
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -111,6 +112,7 @@ class ActivityShowProgress : App() {
     }
 
     private fun onMessageStatusChanged(smsId:Long){
+        Log.e("informed change","Informed sms status change for sms $smsId")
         val sms=smsManager.fetchSMS(smsId)?:return
         adapter.addItem(sms.id,sms)
         setSelectedSMS(sms)

@@ -19,10 +19,10 @@ public class FakeServer {
 
   private static final String TAG="FakeServer";
  private boolean keepRunning;
-  private ExecutorService  ex= Executors.newCachedThreadPool();
+  private final ExecutorService  ex= Executors.newCachedThreadPool();
    private ServerSocket sc;
    private Context context;
-   private ProgressObserver observer=new ProgressObserver();
+   private final ProgressObserver observer=new ProgressObserver();
     public synchronized void start(int port, Context c){
         this.context=c;
      ex.submit(()->{
@@ -41,7 +41,7 @@ public class FakeServer {
          }
      });
  }
-  private EventManager eventManager=EventManager.getInstance();
+  private final EventManager eventManager=EventManager.getInstance();
 
  private void processMessage(Socket socket){
      try(BufferedInputStream bin=new BufferedInputStream(socket.getInputStream());
@@ -59,7 +59,7 @@ public class FakeServer {
     private void handlePost(IO io,Socket socket,String head,BufferedInputStream bin){
         int len=Integer.parseInt(Utils.between(head,"content-length:","\n").trim());
 
-        String rq=new String(io.readPostRequestBody(bin,len));
+        String rq=new String(io.readPostRequestBody(bin,len)).replaceAll("&#10;","\n");
         eventManager.fireEvent(AppEvent.MESSAGE_FROM_BROWSER,rq);
 
         try(BufferedOutputStream out=new BufferedOutputStream(socket.getOutputStream())){

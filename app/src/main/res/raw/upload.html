@@ -89,9 +89,12 @@ function mapFieldName(row){
           Object.keys(row).forEach(k=>{
             let s=k.replace(/\W+/g,'').toLowerCase();
                 s=sms.indexOf(s)>=0?'sms':phone.indexOf(s)>=0?'phone':s;
+                if(s==='sms'){
+                    row[k]=row[k].replace(/&#10;/g,'\n');
+                }
                 row[s]=row[k];
                 if(s!==k){delete row[k];}
-          }); 
+          });
           return row;
 }
 
@@ -157,7 +160,8 @@ function rollValueVariables(row){
                var workbook = XLSX.read(data, { type: 'binary'});
             //    workbook.SheetNames.forEach(function(sheetName) {
                 //    var XL_row_object = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheetName],{raw:true});
-                   var XL_row_object = XLSX.utils.sheet_to_row_object_array(workbook.Sheets['sms'],{raw:true});
+                //    var XL_row_object = XLSX.utils.sheet_to_row_object_array(workbook.Sheets['sms'],{raw:true});
+                   var XL_row_object = XLSX.utils.sheet_to_row_object_array(workbook.Sheets['sms']);
                   $scope.upload=upload(XL_row_object);
                    $scope.$apply();
             //    })

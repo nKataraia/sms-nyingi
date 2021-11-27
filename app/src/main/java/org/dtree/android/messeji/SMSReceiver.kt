@@ -45,12 +45,12 @@ class SMSReceiver: BroadcastReceiver(){
         }
 
         private fun fireDeliveryStatusChange(status:Int, smsID:Long){
-            Log.e("weka kuwa","nyingie kabisa  $smsID and for $status")
              when (status) {
                 Telephony.Sms.STATUS_COMPLETE->smsManager.updateSMSStatus(smsID,SMS.DERIVERED,AppEvent.MESSAGE_DELIVERED)
                 Telephony.Sms.STATUS_FAILED->smsManager.updateSMSStatus(smsID,SMS.FAILED,AppEvent.MESSAGE_DELIVERY_FAILED)
-//                Telephony.Sms.STATUS_PENDING->smsManager.updateSMSStatus(smsID,SMS.PENDING,AppEvent.MESSAGE_DELIVERY_PENDING)
-                Telephony.Sms.STATUS_NONE->smsManager.updateSMSStatus(smsID,SMS.FAILED,AppEvent.MESSAGE_DELIVERY_FAILED)
-                else ->smsManager.updateSMSStatus(smsID,SMS.FAILED,AppEvent.MESSAGE_DELIVERY_FAILED)
+                Telephony.Sms.STATUS_PENDING->smsManager.updateSMSStatus(smsID,SMS.PENDING,AppEvent.MESSAGE_DELIVERY_PENDING)
+                Telephony.Sms.STATUS_NONE->smsManager.updateSMSStatus(smsID,SMS.SENT,AppEvent.MESSAGE_SENT)
+                Telephony.Sms.MESSAGE_TYPE_FAILED->smsManager.updateSMSStatus(smsID,SMS.FAILED,AppEvent.MESSAGE_DELIVERY_FAILED)
+                else ->smsManager.updateSMSStatus(smsID,SMS.SENT,AppEvent.MESSAGE_SENT)
     }}
 }

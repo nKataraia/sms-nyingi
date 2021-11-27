@@ -111,8 +111,7 @@ public class Utils {
     }
     public static String parsePhoneNumber(String phone){
         phone=phone!=null?phone.replaceAll("[^\\d+]+",""):"";
-        return phone;
-//        return phone.length()>=9?"+255"+phone.substring(phone.length()-9):"";
+        return phone.length()>=9?"0"+phone.substring(phone.length()-9):"";
     }
 
     public static boolean fuzzyMatch(char[] chars,String string){

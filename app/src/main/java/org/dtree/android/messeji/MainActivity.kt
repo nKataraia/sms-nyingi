@@ -26,15 +26,13 @@ class MainActivity : App() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_connect)
-        val permissions= arrayOf(
-            INTERNET, ACCESS_WIFI_STATE, RECEIVE_SMS, SEND_SMS, READ_SMS,
-            READ_PHONE_STATE, WRITE_EXTERNAL_STORAGE
-        )
+        val permissions= arrayOf(RECEIVE_SMS, SEND_SMS, READ_SMS)
         serviceIntent=Intent(this, MessageSender::class.java)
 
         if (!hasPermissions(permissions)) {
             ActivityCompat.requestPermissions(this, permissions, PERMISSION_ALL)
         }else{initialize()}
+        allText()
     }
 
     private var idBeforeSending=0L
@@ -68,7 +66,7 @@ class MainActivity : App() {
 //        allText()
         startService(serviceIntent)
         showURL()
-        showSimInfo()
+        //showSimInfo()
         setIDBeforeSending()
     }
 
@@ -102,6 +100,7 @@ class MainActivity : App() {
     private fun showSimInfo(){
         val defaultSim=SmsManager.getDefault().subscriptionId
         if(defaultSim<0){return;}
+
 
         val urlTelephone= Uri.parse("content://telephony/siminfo/");
         val  cursor = this.contentResolver.query(

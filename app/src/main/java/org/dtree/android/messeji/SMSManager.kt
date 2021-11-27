@@ -22,7 +22,7 @@ class SMSManager(val db:DB){
         val sms=SMS(gson.fromJson<Map<String,String>>(jsonSMS,type))
         return saveMessage(sms)
     }
-    fun saveMessage(m: SMS):Long{
+    private fun saveMessage(m: SMS):Long{
         val sql="insert into sms(sender,senderPhone,receiverPhone,topic,text,dateSent,status) values(?,?,?,?,?,?,?)"
         return db.insert(sql,m.sender,m.receiverPhone,m.receiverPhone,m.topic,m.text,m.dateSent,m.status)
     }
